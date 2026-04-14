@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topic Dashboard</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; line-height: 1.6; }
+        details { background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 0.5rem; }
+        summary { font-weight: bold; cursor: pointer; padding: 10px; background: #eee; }
+        .content { padding: 10px 10px 10px 20px; }
+        ul { list-style-type: none; padding-left: 0; }
+        li { margin-bottom: 5px; }
+        a { color: #0066cc; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>Topic Dashboard</h1>
+    <div id="tree-container">Loading topics...</div>
+
+    <script>
+        async function loadTree() {
+            const response = await fetch('/api/tree');
+            const data = await response.json();
+            const container = document.getElementById('tree-container');
+            container.innerHTML = ''; 
+            container.appendChild(buildDOMTree(data));
+        }
+
+        function buildDOMTree(node) {
+            // Base case: if it's the root directory, just render children directly
+            if (node.path === "") {
+                const rootDiv = document.createElement('div');
+                node.dirs.forEach(dir => rootDiv.appendChild(buildDOMTree(dir)));
+                return rootDiv;
+            }
+
+            // Create the native HTML collapsible elements
+            const details = document.createElement('details');
+            const summary = document.createElement('summary');
+            summary.textContent = node.name;
+            details.appendChild(summary);
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'content';
+
+            // Add subdirectories recursively
+            node.dirs.forEach(dir => {
+                contentDiv.appendChild(buildDOMTree(dir));
+            });
+
+            // Add question files
+            if (node.files.length > 0) {
+                const ul = document.createElement('ul');
+                node.files.forEach(file => {
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.textContent = file.name.replace('.md', '');
+                    // Target specific viewer page in a new tab
+                    a.href = `/viewer?file=${encodeURIComponent(file.path)}`;
+                    a.target = "_blank"; // Opens in new tab
+                    li.appendChild(a);
+                    ul.appendChild(li);
+                });
+                contentDiv.appendChild(ul);
+            }
+
+            details.appendChild(contentDiv);
+            return details;
+        }
+
+        loadTree();
+    </script>
+</body>
+</html>
